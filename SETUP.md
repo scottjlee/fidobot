@@ -9,6 +9,8 @@ cd fidobot
 
 Then, install necessary packages with `pip install -r requirements.txt` (we recommend making a virtualenv).
 
+## Configuration
+
 Next, take a look inside the `config/` directory. The majority of changes you will need to make will take place in this directory. `config.json` contains the bulk of the configurable names and parameters you can change.
 
 ### Rosters
@@ -55,14 +57,14 @@ Now, we will set up details about Piazza pager.
 
 **Forever posts** By default, Piazza pager will only look at questions that have been posted in the last week. However, there may be some posts that you want to _always_ be notified about (e.g. a master troubleshooting thread). The `forever_post_nums` variable is a set of Piazza post numbers that will always be included in paging.
 
-#### Push your changes
+### Push your changes
 Now that you've made changes to Fido to fit your course, let's try it out! In the top `fidobot` directory, you should run `run.py`: `python run.py`. If you've set up everything correctly, you should be able to add Fido to a channel and use Fido commands.
 
 **✅ CHECK IN:** You should now have a working local version of Fido.
 
 Once you've verified that everything works locally, you should push it as a new repo (should be private, since it contains sensitive information such as rosters and passwords).
 
-### Hosting
+## Hosting
 We use Heroku to host Fido. 
 
 1) Create an account if you don't already have one, then go to your [Heroku Apps](https://dashboard.heroku.com/apps) page. 
