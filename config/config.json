@@ -1,0 +1,11 @@
+{
+	"roster_student": "config/roster_student.csv",
+	"roster_staff": "config/roster_staff.csv",
+	"ok_link": "...",
+	"bot_name": "fido",
+	"slack_api_token": "...",
+
+	"piazza_id": "...",
+	"piazza_email": "...",
+	"piazza_password": "..."
+}

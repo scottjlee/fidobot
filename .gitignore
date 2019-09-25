@@ -1,0 +1,3 @@
+*/__pycache__/
+slackbot/__pycache__/*.pyc
+slackbot/plugins/__pycache__/
