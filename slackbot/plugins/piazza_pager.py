@@ -9,6 +9,8 @@ import sys, os
 from datetime import datetime
 import pytz
 from pytz import timezone
+from bs4 import BeautifulSoup
+import urllib.parse
 
 """
 The Piazza (bootleg) API response has the following structure:
@@ -78,11 +80,13 @@ forever_post_nums = set([141, 142])
 POST_BASE_URL = "https://piazza.com/class/{}?cid=".format(CONFIG.piazza_id)
 FEED_LIMIT = 200  # Max number of posts to pull from feed
 
+
 def get_max_id(feed):
 	for post in feed:
 		if "pin" not in post:
 			return post["nr"]
 	return -1
+
 
 last_id = 6
 def check_for_new_posts():
@@ -128,6 +132,7 @@ def check_for_new_posts():
 			fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
 			print("Error:", exc_type, fname, exc_tb.tb_lineno)
 
+
 def is_valid_new_post(post, post_start_nr, post_end_nr):
 	tags = post["tags"]
 	def not_in_tags(tags, lst):
@@ -146,6 +151,7 @@ def is_valid_new_post(post, post_start_nr, post_end_nr):
 	# TODO: keep questions that are answered but with unresolved followups
 	return post_start_nr < post["nr"] and post["nr"] < post_end_nr \
 		and "unanswered" in tags and "note" not in tags
+
 
 def process_feed(feed, post_start_nr, post_end_nr):
 	channel_to_response = ddict(list) # Stores channel -> [{response}, {response}, ...]
@@ -219,3 +225,196 @@ def process_feed(feed, post_start_nr, post_end_nr):
 							if c == curr_channel:
 								channel_post_info[channel]["tags"].add(tag)
 	return channel_to_response, channel_post_info
+
+
+def format_post(content):
+	content_soup = BeautifulSoup(content, 'html.parser')
+	return content_soup.get_text(strip=True)
+
+
+def get_post_response(cid):
+	curr_post = network.get_post(cid)
+	msg = ""
+	updated_history = curr_post['history'][0]
+	msg += "Main post of @{}:".format(cid)
+	
+	poster_id = updated_history["uid"]
+	poster_info = network.get_users([poster_id])[0]
+	poster_name, poster_email = poster_info['name'], poster_info['email']
+
+	poster_calid = poster_email[:poster_email.index("@")]
+	encoded_email = urllib.parse.quote(poster_email)
+	poster_ok = '{}{}'.format(CONFIG.ok_link, encoded_email)
+	poster_datahub = '{}user/{}'.format(CONFIG.datahub_link, poster_calid)
+
+	subject = updated_history["subject"]
+	content = updated_history["content"]
+	clean_content = format_post(content)
+
+	piazza_url = "https://piazza.com/class/{}?cid={}".format(CONFIG.piazza_id, cid)
+
+	attachments =  {
+		'fallback': "",
+		'fields': [
+			{
+				"title": "Post Title",
+				"value": subject, 
+				"short": False
+			},
+			{
+				"title": "Post Text",
+				"value": clean_content, 
+				"short": False
+			},
+			{
+				"title": "Name",
+				"value": poster_name,
+				"short": True,
+			},
+			{
+				"title": "Email",
+				"value": poster_email, 
+				"short": False
+			},
+		],
+		'color': '#764FA5',
+		'text': "",
+		'actions': [
+		{
+			"type": "button",
+			"text": "Piazza",
+			"url": piazza_url
+		},
+		{
+			"type": "button",
+			"text": "OK",
+			"url": poster_ok
+		},
+		{
+			"type": "button",
+			"text": "DataHub",
+			"url": poster_datahub
+		}]
+	}
+	return msg, attachments
+
+
+def get_followup_response(cid, fid):
+	curr_post = network.get_post(cid)
+	msg = ""
+	updated_history = curr_post['history'][0]
+
+	op_subject = updated_history["subject"]
+	op_content = updated_history["content"]
+	op_clean_content = format_post(op_content)
+
+	followups_list = curr_post['children'] 
+	try:
+		curr_fu = followups_list[fid] # 0th child is answer to OP, fids start at 1
+	except IndexError:
+		return "That followup does not exist", []
+
+	if 4 <= fid <19:
+		fid_text = "{}th".format(fid)
+	elif fid % 10 == 1:
+		fid_text = "{}st".format(fid)
+	elif fid % 10 == 2:
+		fid_text = "{}nd".format(fid)
+	elif fid % 10 == 3:
+		fid_text = "{}rd".format(fid)
+	else:
+		fid_text = "{}th".format(fid) 
+	msg += "{} followup of @{}:".format(fid_text, cid)
+
+	fu_content = curr_fu["subject"]
+	fu_clean_content = format_post(fu_content)
+
+	poster_id = curr_fu["uid"]
+	poster_info = network.get_users([poster_id])[0]
+	poster_name, poster_email = poster_info['name'], poster_info['email']
+
+	poster_calid = poster_email[:poster_email.index("@")]
+	encoded_email = urllib.parse.quote(poster_email)
+	poster_ok = '{}{}'.format(CONFIG.ok_link, encoded_email)
+	poster_datahub = '{}user/{}'.format(CONFIG.datahub_link, poster_calid)
+
+	piazza_url = "https://piazza.com/class/{}?cid={}_f{}".format(CONFIG.piazza_id, cid, fid)
+
+	attachments =  {
+		'fallback': "",
+		'fields': [
+			{
+				"title": "OP Title",
+				"value": op_subject, 
+				"short": False
+			},
+			{
+				"title": "OP Text",
+				"value": op_clean_content, 
+				"short": False
+			},
+			{
+				"title": "Followup Text",
+				"value": fu_clean_content, 
+				"short": False
+			},
+			{
+				"title": "Followup Name",
+				"value": poster_name,
+				"short": True,
+			},
+			{
+				"title": "Followup Email",
+				"value": poster_email, 
+				"short": False
+			},
+		],
+		'color': '#764FA5',
+		'text': "",
+		'actions': [
+		{
+			"type": "button",
+			"text": "Piazza",
+			"url": piazza_url
+		},
+		{
+			"type": "button",
+			"text": "OK",
+			"url": poster_ok
+		},
+		{
+			"type": "button",
+			"text": "DataHub",
+			"url": poster_datahub
+		}]
+	}
+	return msg, attachments
+	
+
+@listen_to('https:\/\/piazza.com\/class\/(.+)\?cid=(\d+)(\_f(\d+))?')
+def piazza_link_to_info(message, classid, cid, _, fid=-1):
+	""" classid: Piazza class ID (in URL)
+		cid: Post ID
+		fid: Followup ID (doesn't exist for main post URL)
+	"""
+	text = message._body['text'][1:-1] # Take out brackets
+	cid = int(cid)
+
+	if classid != CONFIG.piazza_id:
+		message.reply("That Piazza link is for a different class.")
+
+	if fid is None or int(fid) < 0:
+		msg, attachments = get_post_response(cid)
+	else:
+		msg, attachments = get_followup_response(cid, int(fid))
+
+	message.reply_webapi(msg, attachments=[attachments], in_thread=True)
+
+
+@listen_to('\@(\d+)(_f\d+)?')
+def piazza_num_to_info(message, cid, fid_str=None):
+	if fid_str in [None, ""]:
+		fid = -1
+	else:
+		fid = int(fid_str[2:])
+	piazza_link_to_info(message, CONFIG.piazza_id, cid, None, fid)

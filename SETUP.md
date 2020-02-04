@@ -35,8 +35,8 @@ In `config.json`, you should put the link to your **Admin OK panel** as the valu
 ### Slack
 You will need to set up Fido as a new App on your Slack workspace. 
 
-1) Go to the [Slack App page](https://api.slack.com/apps) and create a new App. Give it a name (whatever you want) and select your workplace.
-2) On the `Basic Information` page, under `Add features and functionality`, select `Incoming webhooks`, `Bots`, and `Permissions`. Then, click "Install App to Workspace."
+1) Go to the Slack App page and create a **new Classic App by clicking [here]( https://api.slack.com/apps?new_classic_app=1)**. Give it a name (whatever you want) and select your workplace.
+2) On the `Basic Information` page, click "Install App to Workspace."
 3) On the `Bot Users` page, you should enable "Always show my bot as online." You can also customize the name and username of Fido if you wish. Change the value of the `bot_name` key in `config.json` if you change it from the default username (`fido`).
 4) On the `OAuth Tokens & Redirect URLs` page, copy the Bot User OAuth Access Token and paste this as the value of the `slack_api_token` key in `config.json`.
 
