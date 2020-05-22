@@ -389,10 +389,9 @@ def get_followup_response(cid, fid):
 		}]
 	}
 	return msg, attachments
-	
 
-@listen_to('https:\/\/piazza.com\/class\/(.+)\?cid=(\d+)(\_f(\d+))?')
-def piazza_link_to_info(message, classid, cid, _, fid=-1):
+@listen_to('https:\/\/piazza.com\/class\/{}\?cid=(\d+)(\_f(\d+))?'.format(CONFIG.piazza_id))
+def piazza_link_to_info(message, cid, _, fid=-1):
 	""" classid: Piazza class ID (in URL)
 		cid: Post ID
 		fid: Followup ID (doesn't exist for main post URL)
@@ -400,8 +399,8 @@ def piazza_link_to_info(message, classid, cid, _, fid=-1):
 	text = message._body['text'][1:-1] # Take out brackets
 	cid = int(cid)
 
-	if classid != CONFIG.piazza_id:
-		message.reply("That Piazza link is for a different class.")
+	# if classid != CONFIG.piazza_id:
+	# 	message.reply("That Piazza link is for a different class.")
 
 	if fid is None or int(fid) < 0:
 		msg, attachments = get_post_response(cid)
@@ -409,7 +408,6 @@ def piazza_link_to_info(message, classid, cid, _, fid=-1):
 		msg, attachments = get_followup_response(cid, int(fid))
 
 	message.reply_webapi(msg, attachments=[attachments], in_thread=True)
-
 
 @listen_to('\@(\d+)(_f\d+)?')
 def piazza_num_to_info(message, cid, fid_str=None):
